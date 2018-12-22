@@ -1,16 +1,8 @@
-#![feature(uniform_paths)]
-#![feature(test)]
 #![feature(slice_patterns)]
-#![feature(int_to_from_bytes)]
-
+#![feature(test)]
 extern crate test;
-use test::{black_box, Bencher};
 
 use std::f32;
-
-#[allow(unused_imports)]
-use byteorder::{BigEndian, ReadBytesExt};
-use std::io::Cursor;
 
 pub fn atoi_via_bytes(chars: [u8; 4]) -> u32 {
     u32::from_be_bytes(chars)
@@ -69,6 +61,21 @@ pub fn compose_f32(exponent: f32, mantissa: f32) -> f32 {
     mantissa * exponent.exp2()
 }
 
+//https://stackoverflow.com/questions/37668886/slice-to-fixed-size-array
+fn clone_into_array<A, T>(slice: &[T]) -> A
+where
+    A: Sized + Default + AsMut<[T]>,
+    T: Clone,
+{
+    let mut a = Default::default();
+    <A as AsMut<[T]>>::as_mut(&mut a).clone_from_slice(slice);
+    a
+}
+
+pub fn getu16_stable(my_array: [u8; 4]) -> u16 {
+    u16::from_be_bytes(clone_into_array(&my_array[0..2]))
+}
+
 pub fn getu16(my_array: [u8; 4]) -> u16 {
     let &[a, b, ..] = &my_array;
     let abs: [u8; 2] = [a, b];
@@ -85,6 +92,9 @@ pub fn getu32(my_array: [u8; 4]) -> u32 {
 mod tests {
 
     use super::*;
+    use byteorder::{BigEndian, ReadBytesExt};
+    use std::io::Cursor;
+    use test::{black_box, Bencher};
 
     #[no_mangle]
     fn get_type() -> u32 {
@@ -284,6 +294,16 @@ mod tests {
             let n = black_box(1000);
 
             (0..n).fold(0, |_a, _b| getu16(my_array))
+        })
+    }
+
+    #[bench]
+    fn bench_from_bytes_u16_stable(b: &mut Bencher) {
+        let my_array = my_array0();
+        b.iter(|| {
+            let n = black_box(1000);
+
+            (0..n).fold(0, |_a, _b| getu16_stable(my_array))
         })
     }
 

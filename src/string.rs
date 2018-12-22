@@ -1,8 +1,3 @@
-#![feature(uniform_paths)]
-#![feature(test)]
-
-extern crate test;
-
 use std::ffi::CStr;
 use std::str;
 
